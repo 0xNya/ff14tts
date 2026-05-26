@@ -11,7 +11,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode/utf8"
 )
 
 const voicevoxBase = "http://localhost:50021"
@@ -102,6 +101,11 @@ type audioQuery struct {
 
 var synthSem = make(chan struct{}, 3)
 
+type ChunkResult struct {
+	WAV []byte
+	Err error
+}
+
 func isSentenceEnd(r rune) bool {
 	switch r {
 	case '。', '！', '？', '.', '!', '?', '…':
@@ -112,10 +116,7 @@ func isSentenceEnd(r rune) bool {
 
 func splitSentences(text string) []string {
 	var sentences []string
-	runes := make([]rune, 0, utf8.RuneCountInString(text))
-	for _, r := range text {
-		runes = append(runes, r)
-	}
+	runes := []rune(text)
 	start := 0
 	for i := 0; i < len(runes); i++ {
 		if !isSentenceEnd(runes[i]) {
@@ -150,17 +151,22 @@ func splitSentences(text string) []string {
 	return sentences
 }
 
-func synthesizeConcurrent(text string, speakerID int, speed, volume float64) ([][]byte, error) {
+func synthesizeStream(text string, speakerID int, speed, volume float64) <-chan ChunkResult {
 	sentences := splitSentences(text)
+	out := make(chan ChunkResult, max(len(sentences), 1))
+
 	if len(sentences) == 0 {
-		return nil, nil
+		close(out)
+		return out
 	}
+
 	if len(sentences) == 1 {
-		wav, err := synthesize(text, speakerID, speed, volume)
-		if err != nil {
-			return nil, err
-		}
-		return [][]byte{wav}, nil
+		go func() {
+			defer close(out)
+			wav, err := synthesize(text, speakerID, speed, volume)
+			out <- ChunkResult{wav, err}
+		}()
+		return out
 	}
 
 	type chunk struct {
@@ -168,7 +174,6 @@ func synthesizeConcurrent(text string, speakerID int, speed, volume float64) ([]
 		wav []byte
 		err error
 	}
-
 	ch := make(chan chunk, len(sentences))
 
 	for i, s := range sentences {
@@ -180,23 +185,30 @@ func synthesizeConcurrent(text string, speakerID int, speed, volume float64) ([]
 		}(i, s)
 	}
 
-	ordered := make([][]byte, len(sentences))
-	var firstErr error
-	for range sentences {
-		c := <-ch
-		if c.err != nil && firstErr == nil {
-			firstErr = c.err
+	go func() {
+		defer close(out)
+		ordered := make([][]byte, len(sentences))
+		received := 0
+		next := 0
+		for range sentences {
+			c := <-ch
+			if c.wav != nil {
+				ordered[c.idx] = c.wav
+			}
+			received++
+			for next < len(sentences) && ordered[next] != nil {
+				out <- ChunkResult{ordered[next], nil}
+				next++
+			}
 		}
-		ordered[c.idx] = c.wav
-	}
-
-	valid := ordered[:0]
-	for _, w := range ordered {
-		if w != nil {
-			valid = append(valid, w)
+		for next < len(sentences) {
+			if ordered[next] != nil {
+				out <- ChunkResult{ordered[next], nil}
+			}
+			next++
 		}
-	}
-	return valid, firstErr
+	}()
+	return out
 }
 
 func synthesize(text string, speakerID int, speed, volume float64) ([]byte, error) {
