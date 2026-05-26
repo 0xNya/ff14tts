@@ -87,12 +87,11 @@ func (h *messageHandler) handle(msg []byte) {
 		start := time.Now()
 		var chunks []ChunkInfo
 		for c := range synthesizeStream(payload, speakerID, vc.Speed, vc.Volume) {
-			elapsed := time.Since(start).Milliseconds()
 			if c.Err != nil {
 				log.Printf("[VOICEVOX] synthesis error: %v", c.Err)
 				continue
 			}
-			chunks = append(chunks, ChunkInfo{Text: c.Text, TimeMs: elapsed})
+			chunks = append(chunks, ChunkInfo{Text: c.Text, TimeMs: c.SynthMs})
 			if err := playWAV(c.WAV); err != nil {
 				log.Printf("[PLAY] error: %v", err)
 			}
@@ -107,7 +106,7 @@ func (h *messageHandler) handle(msg []byte) {
 		if h.debugCfg.Get().ShowChunks {
 			log.Printf("[CHUNKS] #%d: %d chunks, %dms total", msgID, len(chunks), totalMs)
 			for i, c := range chunks {
-				log.Printf("[CHUNK %d/%d] +%dms: %s", i+1, len(chunks), c.TimeMs, c.Text)
+				log.Printf("[CHUNK %d/%d] synth %dms: %s", i+1, len(chunks), c.TimeMs, c.Text)
 			}
 		}
 	}()

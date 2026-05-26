@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"sync/atomic"
+	"time"
 )
 
 //go:embed web/index.html
@@ -105,14 +106,21 @@ func (s *serverState) sseHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	ch := s.sseBroker.Subscribe()
 	defer s.sseBroker.Unsubscribe(ch)
+
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case msg := <-ch:
 			fmt.Fprint(w, msg)
+			flusher.Flush()
+		case <-ticker.C:
+			fmt.Fprint(w, ": heartbeat\n\n")
 			flusher.Flush()
 		case <-r.Context().Done():
 			return

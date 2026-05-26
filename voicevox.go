@@ -102,9 +102,10 @@ type audioQuery struct {
 var synthSem = make(chan struct{}, 3)
 
 type ChunkResult struct {
-	WAV  []byte
-	Text string
-	Err  error
+	WAV     []byte
+	Text    string
+	SynthMs int64
+	Err     error
 }
 
 func isSentenceEnd(r rune) bool {
@@ -171,9 +172,10 @@ func synthesizeStream(text string, speakerID int, speed, volume float64) <-chan 
 	}
 
 	type chunk struct {
-		idx int
-		wav []byte
-		err error
+		idx     int
+		wav     []byte
+		err     error
+		synthMs int64
 	}
 	ch := make(chan chunk, len(sentences))
 
@@ -181,8 +183,9 @@ func synthesizeStream(text string, speakerID int, speed, volume float64) <-chan 
 		go func(idx int, sentence string) {
 			synthSem <- struct{}{}
 			defer func() { <-synthSem }()
+			t0 := time.Now()
 			wav, err := synthesize(sentence, speakerID, speed, volume)
-			ch <- chunk{idx, wav, err}
+			ch <- chunk{idx: idx, wav: wav, err: err, synthMs: time.Since(t0).Milliseconds()}
 		}(i, s)
 	}
 
@@ -193,7 +196,7 @@ func synthesizeStream(text string, speakerID int, speed, volume float64) <-chan 
 		for range sentences {
 			c := <-ch
 			if c.wav != nil {
-				ordered[c.idx] = ChunkResult{WAV: c.wav, Text: sentences[c.idx]}
+				ordered[c.idx] = ChunkResult{WAV: c.wav, Text: sentences[c.idx], SynthMs: c.synthMs}
 			}
 			for next < len(sentences) && ordered[next].WAV != nil {
 				out <- ordered[next]

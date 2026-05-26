@@ -308,18 +308,16 @@ function connectSSE(){
     try{
       const m=JSON.parse(e.data);
       addChatMessage(m);
-    }catch(err){}
+    }catch(err){console.error('SSE parse:',err)}
   });
   es.addEventListener('chunks',e=>{
     try{
       const d=JSON.parse(e.data);
       addChunkEntry(d);
-    }catch(err){}
+    }catch(err){console.error('SSE parse:',err)}
   });
   es.onerror=()=>{
-    setStatus('SSE disconnected','error');
-    es.close();
-    setTimeout(connectSSE,3000);
+    setStatus('SSE retrying...','error');
   };
   setStatus('SSE connected','success');
 }
