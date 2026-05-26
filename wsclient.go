@@ -57,14 +57,16 @@ func (h *messageHandler) handle(msg []byte) {
 
 	log.Printf("[TTS] (%s) %s", voiceName, payload)
 
-	wav, err := synthesize(payload, speakerID, vc.Speed, vc.Volume)
-	if err != nil {
-		log.Printf("[VOICEVOX] synthesis error: %v", err)
-		return
-	}
 	go func() {
-		if err := playWAV(wav); err != nil {
-			log.Printf("[PLAY] error: %v", err)
+		chunks, err := synthesizeConcurrent(payload, speakerID, vc.Speed, vc.Volume)
+		if err != nil {
+			log.Printf("[VOICEVOX] synthesis error: %v", err)
+			return
+		}
+		for _, chunk := range chunks {
+			if err := playWAV(chunk); err != nil {
+				log.Printf("[PLAY] error: %v", err)
+			}
 		}
 	}()
 }
