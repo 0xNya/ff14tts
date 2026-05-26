@@ -1,0 +1,15 @@
+# Go binary
+ff14tts.exe
+*.exe
+
+# Runtime config (user-specific)
+config.json
+
+# Python example (not part of Go project)
+/PyExample/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
