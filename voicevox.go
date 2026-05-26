@@ -188,14 +188,12 @@ func synthesizeStream(text string, speakerID int, speed, volume float64) <-chan 
 	go func() {
 		defer close(out)
 		ordered := make([][]byte, len(sentences))
-		received := 0
 		next := 0
 		for range sentences {
 			c := <-ch
 			if c.wav != nil {
 				ordered[c.idx] = c.wav
 			}
-			received++
 			for next < len(sentences) && ordered[next] != nil {
 				out <- ChunkResult{ordered[next], nil}
 				next++
