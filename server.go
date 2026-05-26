@@ -44,6 +44,7 @@ func (s *serverState) Handler() http.Handler {
 	mux.HandleFunc("GET /api/messages", s.getMessages)
 	mux.HandleFunc("GET /api/debug", s.getDebug)
 	mux.HandleFunc("POST /api/debug", s.setDebug)
+	mux.HandleFunc("POST /api/replay", s.replayMessage)
 	return mux
 }
 
@@ -155,5 +156,40 @@ func (s *serverState) setDebug(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.debugCfg.Set(&cfg)
+	w.WriteHeader(http.StatusOK)
+}
+
+type replayRequest struct {
+	ID int `json:"id"`
+}
+
+func (s *serverState) replayMessage(w http.ResponseWriter, r *http.Request) {
+	var req replayRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	msg := s.msgLog.GetByID(req.ID)
+	if msg == nil {
+		http.Error(w, "message not found", http.StatusNotFound)
+		return
+	}
+
+	vc := s.config.Get(msg.Category)
+	speakerID := s.voices.FindSpeakerID(vc.VoiceDisplay)
+
+	go func() {
+		for chunk := range synthesizeStream(msg.Text, speakerID, vc.Speed, vc.Volume) {
+			if chunk.Err != nil {
+				log.Printf("[REPLAY] synthesis error: %v", chunk.Err)
+				continue
+			}
+			if err := playWAV(chunk.WAV); err != nil {
+				log.Printf("[REPLAY] play error: %v", err)
+			}
+		}
+	}()
+
 	w.WriteHeader(http.StatusOK)
 }

@@ -71,6 +71,17 @@ func (l *MessageLog) UpdateChunks(id int, chunks []ChunkInfo, totalMs int64) {
 	}
 }
 
+func (l *MessageLog) GetByID(id int) *ChatMessage {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	for i := range l.messages {
+		if l.messages[i].ID == id {
+			return &l.messages[i]
+		}
+	}
+	return nil
+}
+
 type SSEBroker struct {
 	mu      sync.Mutex
 	clients map[chan string]struct{}

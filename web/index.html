@@ -52,6 +52,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .msg.male{border-left-color:#89b4fa}
 .msg.female{border-left-color:#f5c2e7}
 .msg.unknown{border-left-color:#a6e3a1}
+.msg-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.msg-header .msg-voice{margin-bottom:0}
+.replay-btn{background:transparent;border:none;cursor:pointer;font-size:13px;padding:0 2px;opacity:0.35;transition:opacity .15s,transform .1s;line-height:1}
+.replay-btn:hover{opacity:1;transform:scale(1.2)}
 .msg-voice{font-size:11px;font-weight:700;color:#89b4fa;margin-bottom:4px}
 .msg.male .msg-voice{color:#89b4fa}
 .msg.female .msg-voice{color:#f5c2e7}
@@ -275,7 +279,10 @@ function addChatMessage(m){
   div.className='msg '+m.category;
   div.id='msg-'+m.id;
   div.innerHTML=`
-    <div class="msg-voice">${m.voice}</div>
+    <div class="msg-header">
+      <span class="msg-voice">${m.voice}</span>
+      <button class="replay-btn" data-id="${m.id}" title="Replay">🔁</button>
+    </div>
     <div class="msg-text">${escHtml(m.text)}</div>
     <div class="msg-meta"><span>${m.timestamp}</span></div>`;
   el.appendChild(div);
@@ -286,6 +293,14 @@ function addChatMessage(m){
 function escHtml(s){
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+qs('#chat-messages').addEventListener('click', e => {
+  const btn = e.target.closest('.replay-btn');
+  if (!btn) return;
+  const id = parseInt(btn.dataset.id);
+  fetch('/api/replay', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})})
+    .catch(err => console.error('Replay error:', err));
+});
 
 // Chunk log
 function addChunkEntry(data){
