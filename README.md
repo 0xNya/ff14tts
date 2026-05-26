@@ -1,7 +1,6 @@
 # ff14tts — TextToTalk → VOICEVOX Bridge
 
 [![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://go.dev)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 Бесплатный голосовой движок для **FINAL FANTASY XIV**. Перехватывает реплики NPC из плагина [TextToTalk](https://github.com/karashiiro/TextToTalk) и озвучивает их через [VOICEVOX](https://voicevox.hiroshiba.jp/) — японский TTS-движок.
 
