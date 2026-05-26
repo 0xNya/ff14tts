@@ -13,3 +13,7 @@ config.json
 .vscode/
 *.swp
 *.swo
+
+# Temp/backup files
+*~
+ff14tts.exe~
