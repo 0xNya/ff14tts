@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"sync/atomic"
 	"time"
 )
@@ -40,6 +41,7 @@ func (s *serverState) Handler() http.Handler {
 	mux.HandleFunc("GET /api/voices", s.getVoices)
 	mux.HandleFunc("GET /api/status", s.getStatus)
 	mux.HandleFunc("GET /api/events", s.sseHandler)
+	mux.HandleFunc("GET /api/messages", s.getMessages)
 	mux.HandleFunc("GET /api/debug", s.getDebug)
 	mux.HandleFunc("POST /api/debug", s.setDebug)
 	return mux
@@ -95,6 +97,19 @@ func (s *serverState) getStatus(w http.ResponseWriter, r *http.Request) {
 		info = statusInfo{Text: "Connected to TextToTalk", Type: "success"}
 	}
 	json.NewEncoder(w).Encode(info)
+}
+
+func (s *serverState) getMessages(w http.ResponseWriter, r *http.Request) {
+	since := 0
+	if s := r.URL.Query().Get("since"); s != "" {
+		since, _ = strconv.Atoi(s)
+	}
+	msgs := s.msgLog.Since(since)
+	if msgs == nil {
+		msgs = []ChatMessage{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(msgs)
 }
 
 func (s *serverState) sseHandler(w http.ResponseWriter, r *http.Request) {

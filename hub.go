@@ -47,6 +47,18 @@ func (l *MessageLog) Add(msg ChatMessage) int {
 	return msg.ID
 }
 
+func (l *MessageLog) Since(since int) []ChatMessage {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	var result []ChatMessage
+	for _, m := range l.messages {
+		if m.ID > since {
+			result = append(result, m)
+		}
+	}
+	return result
+}
+
 func (l *MessageLog) UpdateChunks(id int, chunks []ChunkInfo, totalMs int64) {
 	l.mu.Lock()
 	defer l.mu.Unlock()

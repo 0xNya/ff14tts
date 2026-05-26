@@ -301,13 +301,16 @@ function addChunkEntry(data){
   if(el.children.length>50)el.lastChild.remove();
 }
 
-// SSE connection
+// SSE + polling
+let lastMsgId = 0;
+
 function connectSSE(){
   const es=new EventSource('/api/events');
   es.addEventListener('message',e=>{
     try{
       const m=JSON.parse(e.data);
       addChatMessage(m);
+      if(m.id>lastMsgId)lastMsgId=m.id;
     }catch(err){console.error('SSE parse:',err)}
   });
   es.addEventListener('chunks',e=>{
@@ -316,11 +319,26 @@ function connectSSE(){
       addChunkEntry(d);
     }catch(err){console.error('SSE parse:',err)}
   });
-  es.onerror=()=>{
-    setStatus('SSE retrying...','error');
-  };
-  setStatus('SSE connected','success');
+  es.onopen = () => setStatus('Connected','success');
+  es.onerror = () => setStatus('SSE retrying...','error');
 }
+
+async function pollMessages(){
+  try{
+    const msgs=await api('/api/messages?since='+lastMsgId);
+    msgs.forEach(m=>{
+      if(m.id>lastMsgId){
+        addChatMessage(m);
+        if(m.chunks&&m.chunks.length){
+          addChunkEntry({id:m.id,chunks:m.chunks,total_ms:m.total_ms||0});
+        }
+      }
+    });
+    if(msgs.length>0)lastMsgId=msgs[msgs.length-1].id;
+  }catch(e){}
+}
+
+setInterval(pollMessages,2000);
 
 // Status poll fallback
 setInterval(async()=>{
@@ -336,6 +354,8 @@ async function init(){
   await loadVoices();
   await loadDebug();
   connectSSE();
+  // Poll immediately for any missed messages
+  await pollMessages();
 }
 init();
 </script>
