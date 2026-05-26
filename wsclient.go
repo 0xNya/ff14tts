@@ -12,6 +12,7 @@ const wsURL = "ws://127.0.0.1:5000/Messages"
 
 type wsMessage struct {
 	Type    string   `json:"Type"`
+	Speaker string   `json:"Speaker"`
 	Payload string   `json:"Payload"`
 	Voice   *wsVoice `json:"Voice"`
 }
@@ -65,14 +66,19 @@ func (h *messageHandler) handle(msg []byte) {
 
 	log.Printf("[TTS] (%s) %s", voiceName, payload)
 
-	gender := "?"
+	genderLabel := "？"
 	switch category {
 	case "male":
-		gender = "\u2642"
+		genderLabel = "男"
 	case "female":
-		gender = "\u2640"
+		genderLabel = "女"
 	}
-	displayVoice := voiceName + " (" + gender + ")"
+
+	speakerName := data.Speaker
+	if speakerName == "" {
+		speakerName = voiceName
+	}
+	displayVoice := speakerName + "（" + genderLabel + "）"
 
 	chatMsg := ChatMessage{
 		Timestamp: time.Now().Format("15:04:05"),
