@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -97,7 +99,10 @@ type audioQuery struct {
 }
 
 func synthesize(text string, speakerID int, speed, volume float64) ([]byte, error) {
-	queryURL := fmt.Sprintf("%s/audio_query?text=%s&speaker=%d", voicevoxBase, text, speakerID)
+	params := url.Values{}
+	params.Set("text", text)
+	params.Set("speaker", strconv.Itoa(speakerID))
+	queryURL := voicevoxBase + "/audio_query?" + params.Encode()
 	queryResp, err := httpClient.Post(queryURL, "application/json", nil)
 	if err != nil {
 		return nil, fmt.Errorf("audio_query: %w", err)
@@ -124,7 +129,7 @@ func synthesize(text string, speakerID int, speed, volume float64) ([]byte, erro
 		return nil, fmt.Errorf("marshal query: %w", err)
 	}
 
-	synthURL := fmt.Sprintf("%s/synthesis?speaker=%d", voicevoxBase, speakerID)
+	synthURL := voicevoxBase + "/synthesis?speaker=" + strconv.Itoa(speakerID)
 	synthResp, err := httpClient.Post(synthURL, "application/json", bytes.NewReader(modified))
 	if err != nil {
 		return nil, fmt.Errorf("synthesis: %w", err)
