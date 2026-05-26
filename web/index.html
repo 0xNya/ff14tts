@@ -3,110 +3,190 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>TextToTalk -> VOICEVOX Bridge</title>
+<title>TextToTalk → VOICEVOX Bridge</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1e1e2e;color:#cdd6f4;min-height:100vh;display:flex;justify-content:center;align-items:center}
-.app{background:#313244;border-radius:12px;width:560px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.4)}
-.tabs{display:flex;background:#45475a}
-.tab{flex:1;padding:12px;text-align:center;cursor:pointer;border:none;background:transparent;color:#a6adc8;font-size:14px;font-weight:600;transition:all .2s}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1e1e2e;color:#cdd6f4;display:flex;justify-content:center;align-items:center;min-height:100vh}
+.app{display:flex;width:1100px;height:640px;background:#313244;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+
+/* Left panel - Config */
+.config-panel{width:340px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid #45475a}
+.tabs{display:flex;background:#45475a;flex-shrink:0}
+.tab{flex:1;padding:10px 6px;text-align:center;cursor:pointer;border:none;background:transparent;color:#a6adc8;font-size:12px;font-weight:600;transition:all .15s}
 .tab:hover{background:#585b70;color:#cdd6f4}
 .tab.active{background:#313244;color:#89b4fa;border-bottom:2px solid #89b4fa}
-.tab-content{display:none;padding:20px}
+.tab-contents{flex:1;overflow-y:auto}
+.tab-content{display:none;padding:16px}
 .tab-content.active{display:block}
-.field{margin-bottom:16px}
+
+.field{margin-bottom:14px}
 .field:last-child{margin-bottom:0}
-.field label{display:block;font-size:13px;font-weight:600;color:#a6adc8;margin-bottom:6px}
-.field select{width:100%;padding:8px 12px;border:1px solid #585b70;border-radius:8px;background:#45475a;color:#cdd6f4;font-size:14px;cursor:pointer;outline:none}
+.field label{display:block;font-size:12px;font-weight:600;color:#a6adc8;margin-bottom:5px}
+.field select{width:100%;padding:7px 10px;border:1px solid #585b70;border-radius:6px;background:#45475a;color:#cdd6f4;font-size:13px;cursor:pointer;outline:none}
 .field select:focus{border-color:#89b4fa}
 .field select option{background:#313244;color:#cdd6f4}
-.slider-row{display:flex;align-items:center;gap:12px}
-.slider-row input[type="range"]{flex:1;height:6px;-webkit-appearance:none;appearance:none;background:#585b70;border-radius:3px;outline:none;cursor:pointer}
-.slider-row input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:#89b4fa;cursor:pointer;transition:transform .15s}
+.slider-row{display:flex;align-items:center;gap:10px}
+.slider-row input[type="range"]{flex:1;height:5px;-webkit-appearance:none;appearance:none;background:#585b70;border-radius:3px;outline:none;cursor:pointer}
+.slider-row input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;background:#89b4fa;cursor:pointer;transition:transform .15s}
 .slider-row input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.15)}
-.slider-row input[type="range"]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#89b4fa;cursor:pointer;border:none}
-.slider-value{min-width:44px;text-align:right;font-size:14px;font-weight:600;color:#89b4fa;font-variant-numeric:tabular-nums}
-.bottom-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid #45475a;gap:12px}
-.btn{background:#89b4fa;color:#1e1e2e;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s,transform .1s}
+.slider-value{min-width:40px;text-align:right;font-size:13px;font-weight:600;color:#89b4fa;font-variant-numeric:tabular-nums}
+
+.config-footer{flex-shrink:0;padding:10px 16px;border-top:1px solid #45475a;display:flex;align-items:center;justify-content:space-between}
+.btn{background:#89b4fa;color:#1e1e2e;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s,transform .1s}
 .btn:hover{background:#b4d0fb}
 .btn:active{transform:scale(.97)}
-.status{font-size:13px;color:#a6adc8;flex:1;text-align:right}
+.status{font-size:12px;color:#a6adc8;flex:1;text-align:right;margin-left:8px}
 .status.error{color:#f38ba8}
 .status.success{color:#a6e3a1}
+
+/* Right panel - Chat */
+.chat-panel{flex:1;display:flex;flex-direction:column;min-width:0}
+.chat-header{padding:10px 16px;background:#45475a;font-size:13px;font-weight:600;color:#a6adc8;flex-shrink:0;display:flex;justify-content:space-between;align-items:center}
+.chat-header .count{font-size:11px;font-weight:400}
+.chat-messages{flex:1;overflow-y:auto;padding:12px 16px}
+.chat-messages::-webkit-scrollbar{width:6px}
+.chat-messages::-webkit-scrollbar-track{background:transparent}
+.chat-messages::-webkit-scrollbar-thumb{background:#585b70;border-radius:3px}
+
+.msg{margin-bottom:12px;padding:10px 14px;background:#45475a;border-radius:8px;border-left:3px solid #89b4fa;animation:fadeIn .2s ease}
+.msg.male{border-left-color:#89b4fa}
+.msg.female{border-left-color:#f5c2e7}
+.msg.unknown{border-left-color:#a6e3a1}
+.msg-voice{font-size:11px;font-weight:700;color:#89b4fa;margin-bottom:4px}
+.msg.male .msg-voice{color:#89b4fa}
+.msg.female .msg-voice{color:#f5c2e7}
+.msg.unknown .msg-voice{color:#a6e3a1}
+.msg-text{font-size:13px;line-height:1.45;color:#cdd6f4;word-break:break-word}
+.msg-meta{display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:#6c7086}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.empty-chat{text-align:center;color:#585b70;margin-top:80px;font-size:14px}
+.empty-chat p{margin-bottom:8px}
+
+/* Debug tab */
+.debug-options{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.debug-options label{display:flex;align-items:center;gap:8px;font-size:12px;color:#a6adc8;cursor:pointer}
+.debug-options input[type="checkbox"]{accent-color:#89b4fa;width:15px;height:15px;cursor:pointer}
+.chunk-log{max-height:300px;overflow-y:auto;font-size:11px;font-family:'Consolas','Fira Code',monospace}
+.chunk-log::-webkit-scrollbar{width:4px}
+.chunk-log::-webkit-scrollbar-thumb{background:#585b70;border-radius:2px}
+.chunk-entry{margin-bottom:8px;padding:8px 10px;background:#45475a;border-radius:6px}
+.chunk-entry .chunk-header{color:#89b4fa;margin-bottom:4px;font-weight:600}
+.chunk-line{color:#a6adc8;padding:2px 0;padding-left:12px}
+.chunk-line .chunk-idx{color:#585b70}
+.chunk-line .chunk-time{color:#f9e2af}
 </style>
 </head>
 <body>
 <div class="app" id="app">
-  <div class="tabs" id="tabs">
-    <button class="tab active" data-cat="male">Male</button>
-    <button class="tab" data-cat="female">Female</button>
-    <button class="tab" data-cat="unknown">Unknown</button>
+  <div class="config-panel">
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-cat="male">♂ Male</button>
+      <button class="tab" data-cat="female">♀ Female</button>
+      <button class="tab" data-cat="unknown">? Unknown</button>
+      <button class="tab" data-cat="debug">⚙ Debug</button>
+    </div>
+    <div class="tab-contents">
+      <div id="male" class="tab-content active"></div>
+      <div id="female" class="tab-content"></div>
+      <div id="unknown" class="tab-content"></div>
+      <div id="debug" class="tab-content">
+        <div class="debug-options">
+          <label><input type="checkbox" id="dbg-chunks"> Show chunk splits in console</label>
+          <label><input type="checkbox" id="dbg-timing"> Show synthesis timestamps</label>
+          <label><input type="checkbox" id="dbg-raw"> Show raw WebSocket messages</label>
+        </div>
+        <div style="color:#a6adc8;font-size:12px;font-weight:600;margin-bottom:8px">Chunk log</div>
+        <div class="chunk-log" id="chunk-log"></div>
+      </div>
+    </div>
+    <div class="config-footer">
+      <button class="btn" id="refreshBtn">Refresh voices</button>
+      <span class="status" id="status">Ready</span>
+    </div>
   </div>
-  <div id="male" class="tab-content active"></div>
-  <div id="female" class="tab-content"></div>
-  <div id="unknown" class="tab-content"></div>
-  <div class="bottom-bar">
-    <button class="btn" id="refreshBtn">Refresh voices</button>
-    <span class="status" id="status">Ready</span>
+  <div class="chat-panel">
+    <div class="chat-header">
+      <span>TextToTalk Messages</span>
+      <span class="count" id="msg-count">0 messages</span>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="empty-chat">
+        <p>Waiting for TextToTalk messages...</p>
+        <p style="font-size:11px">Connect to FFXIV with TextToTalk plugin active</p>
+      </div>
+    </div>
   </div>
 </div>
 <script>
-const CATEGORIES = ['male','female','unknown'];
-let config = null;
-let voices = [];
-let dirty = {};
+const CATS=['male','female','unknown'];
+let config=null;
+let voices=[];
+let msgCount=0;
+let msgIds=new Set();
 
-function qs(s, p){return(p||document).querySelector(s)}
-function qsa(s, p){return[...(p||document).querySelectorAll(s)]}
+function qs(s,p){return(p||document).querySelector(s)}
+function qsa(s,p){return[...(p||document).querySelectorAll(s)]}
 
-function setStatus(text, type){
-  const el=document.getElementById('status');
-  el.textContent=text;
-  el.className='status'+(type?' '+type:'');
+function setStatus(t,ty){
+  const e=qs('#status');
+  e.textContent=t;
+  e.className='status'+(ty?' '+ty:'');
 }
 
-async function api(path, opts){
-  const r=await fetch(path, opts);
+async function api(p,o){
+  const r=await fetch(p,o);
   if(!r.ok)throw new Error(await r.text());
   return r.json();
 }
 
 async function loadConfig(){
   config=await api('/api/config');
-  CATEGORIES.forEach(c=>{
-    if(!dirty[c])dirty[c]={voice:false,speed:false,volume:false};
-  });
 }
-
 async function loadVoices(){
   try{
-    const v=await api('/api/voices');
-    voices=v;
-    CATEGORIES.forEach(renderCategory);
+    voices=await api('/api/voices');
+    CATS.forEach(renderCategory);
     setStatus('Voices loaded','success');
   }catch(e){
     setStatus('Failed to fetch voices','error');
   }
-  applyConfigToUI();
+  if(config)applyConfigToUI();
 }
-
 async function saveConfig(){
   try{
     await api('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(config)});
   }catch(e){
-    console.error('Save config error:',e);
+    console.error('save config:',e);
   }
+}
+async function loadDebug(){
+  try{
+    const d=await api('/api/debug');
+    qs('#dbg-chunks').checked=d.show_chunks||false;
+    qs('#dbg-timing').checked=d.show_timing||false;
+    qs('#dbg-raw').checked=d.show_raw||false;
+  }catch(e){}
+}
+async function saveDebug(){
+  try{
+    await api('/api/debug',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        show_chunks:qs('#dbg-chunks').checked,
+        show_timing:qs('#dbg-timing').checked,
+        show_raw:qs('#dbg-raw').checked
+      })});
+  }catch(e){}
 }
 
 function renderCategory(cat){
-  const container=document.getElementById(cat);
-  if(!container)return;
-  container.innerHTML='';
-  const selOpts=voices.map(v=>`<option value="${v.display.replace(/"/g,'&quot;')}">${v.display}</option>`).join('');
-  container.innerHTML=`
+  const c=qs('#'+cat);
+  if(!c)return;
+  const opts=voices.map(v=>'<option value="'+v.display.replace(/"/g,'&quot;')+'">'+v.display+'</option>').join('');
+  c.innerHTML=`
     <div class="field">
       <label for="${cat}-voice">Voice:</label>
-      <select id="${cat}-voice" data-cat="${cat}">${selOpts}</select>
+      <select id="${cat}-voice" data-cat="${cat}">${opts}</select>
     </div>
     <div class="field">
       <label for="${cat}-speed">Speed:</label>
@@ -121,82 +201,51 @@ function renderCategory(cat){
         <input type="range" id="${cat}-volume" data-cat="${cat}" min="0.0" max="2.0" step="0.01" value="1.0">
         <span class="slider-value" id="${cat}-volume-val">1.00</span>
       </div>
-    </div>
-  `;
-  document.getElementById(`${cat}-voice`).addEventListener('change',()=>onVoiceChange(cat));
-  document.getElementById(`${cat}-speed`).addEventListener('input',()=>onSliderChange(cat,'speed'));
-  document.getElementById(`${cat}-volume`).addEventListener('input',()=>onSliderChange(cat,'volume'));
+    </div>`;
+  qs('#'+cat+'-voice').addEventListener('change',()=>onVoiceChange(cat));
+  qs('#'+cat+'-speed').addEventListener('input',()=>sliderUpdate(cat,'speed'));
+  qs('#'+cat+'-volume').addEventListener('input',()=>sliderUpdate(cat,'volume'));
 }
-
 function applyConfigToUI(){
   if(!config)return;
-  CATEGORIES.forEach(cat=>{
+  CATS.forEach(cat=>{
     const c=config[cat];
     if(!c)return;
-    const sel=document.getElementById(`${cat}-voice`);
-    const spd=document.getElementById(`${cat}-speed`);
-    const vol=document.getElementById(`${cat}-volume`);
+    const sel=qs('#'+cat+'-voice');
+    const spd=qs('#'+cat+'-speed');
+    const vol=qs('#'+cat+'-volume');
     if(sel&&c.voice_display){
-      const idx=[...sel.options].findIndex(o=>o.value===c.voice_display);
-      if(idx>=0)sel.selectedIndex=idx;
+      for(let i=0;i<sel.options.length;i++){
+        if(sel.options[i].value===c.voice_display){sel.selectedIndex=i;break;}
+      }
     }
-    if(spd){
-      spd.value=c.speed;
-      const v=document.getElementById(`${cat}-speed-val`);
-      if(v)v.textContent=c.speed.toFixed(2);
-    }
-    if(vol){
-      vol.value=c.volume;
-      const v=document.getElementById(`${cat}-volume-val`);
-      if(v)v.textContent=c.volume.toFixed(2);
-    }
+    if(spd){spd.value=c.speed;const v=qs('#'+cat+'-speed-val');if(v)v.textContent=c.speed.toFixed(2);}
+    if(vol){vol.value=c.volume;const v=qs('#'+cat+'-volume-val');if(v)v.textContent=c.volume.toFixed(2);}
   });
 }
-
 function onVoiceChange(cat){
-  const sel=document.getElementById(`${cat}-voice`);
-  if(!sel||!config||!config[cat])return;
-  const display=sel.value;
-  config[cat].voice_display=display;
-  dirty[cat].voice=true;
+  const sel=qs('#'+cat+'-voice');
+  config[cat].voice_display=sel.value;
   saveConfig();
 }
-
-function onSliderChange(cat,field){
-  const el=document.getElementById(`${cat}-${field}`);
-  const valEl=document.getElementById(`${cat}-${field}-val`);
-  const val=parseFloat(el.value);
-  if(valEl)valEl.textContent=val.toFixed(2);
-  if(config&&config[cat]){
-    config[cat][field]=val;
-    dirty[cat][field]=true;
-  }
-}
-
-// Debounced save on slider release
-function saveOnRelease(cat){
-  return function(){
-    if(config&&config[cat])saveConfig();
-  };
+function sliderUpdate(cat,f){
+  const el=qs('#'+cat+'-'+f);
+  const v=parseFloat(el.value);
+  qs('#'+cat+'-'+f+'-val').textContent=v.toFixed(2);
+  config[cat][f]=v;
 }
 
 // Tab switching
-document.getElementById('tabs').addEventListener('click',e=>{
-  const btn=e.target.closest('.tab');
-  if(!btn)return;
+qs('#tabs').addEventListener('click',e=>{
+  const b=e.target.closest('.tab');
+  if(!b)return;
   qsa('.tab').forEach(t=>t.classList.remove('active'));
   qsa('.tab-content').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById(btn.dataset.cat).classList.add('active');
+  b.classList.add('active');
+  qs('#'+b.dataset.cat).classList.add('active');
 });
 
-// Refresh
-document.getElementById('refreshBtn').addEventListener('click',async()=>{
-  setStatus('Fetching voices...');
-  await loadVoices();
-});
-
-// Init slider release handlers
+// Save config on slider release
 document.addEventListener('change',e=>{
   if(e.target.matches('input[type="range"]')){
     const cat=e.target.dataset.cat;
@@ -204,23 +253,92 @@ document.addEventListener('change',e=>{
   }
 });
 
-async function init(){
-  try{
-    await loadConfig();
-    await loadVoices();
-  }catch(e){
-    setStatus('Error loading config','error');
-    console.error(e);
-  }
-  // Poll status from server
-  setInterval(async()=>{
-    try{
-      const st=await api('/api/status');
-      setStatus(st.text,st.type||'');
-    }catch(_){}
-  },3000);
+// Refresh
+qs('#refreshBtn').addEventListener('click',async()=>{
+  setStatus('Fetching voices...');
+  await loadVoices();
+});
+
+// Debug checkboxes
+['dbg-chunks','dbg-timing','dbg-raw'].forEach(id=>{
+  qs('#'+id).addEventListener('change',saveDebug);
+});
+
+// Chat log
+function addChatMessage(m){
+  if(msgIds.has(m.id))return;
+  msgIds.add(m.id);
+  const el=qs('#chat-messages');
+  const empty=qs('.empty-chat');
+  if(empty)empty.remove();
+  const div=document.createElement('div');
+  div.className='msg '+m.category;
+  div.id='msg-'+m.id;
+  div.innerHTML=`
+    <div class="msg-voice">${m.voice}</div>
+    <div class="msg-text">${escHtml(m.text)}</div>
+    <div class="msg-meta"><span>${m.timestamp}</span></div>`;
+  el.appendChild(div);
+  el.scrollTop=el.scrollHeight;
+  msgCount++;
+  qs('#msg-count').textContent=msgCount+' message'+(msgCount!==1?'s':'');
+}
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// Chunk log
+function addChunkEntry(data){
+  const el=qs('#chunk-log');
+  const div=document.createElement('div');
+  div.className='chunk-entry';
+  let html='<div class="chunk-header">#'+data.id+' — '+data.chunks.length+' chunks, '+data.total_ms+'ms total</div>';
+  data.chunks.forEach((c,i)=>{
+    html+='<div class="chunk-line"><span class="chunk-idx">ch'+(i+1)+'</span> +<span class="chunk-time">'+c.time_ms+'ms</span>: '+escHtml(c.text)+'</div>';
+  });
+  div.innerHTML=html;
+  el.insertBefore(div,el.firstChild);
+  if(el.children.length>50)el.lastChild.remove();
+}
+
+// SSE connection
+function connectSSE(){
+  const es=new EventSource('/api/events');
+  es.addEventListener('message',e=>{
+    try{
+      const m=JSON.parse(e.data);
+      addChatMessage(m);
+    }catch(err){}
+  });
+  es.addEventListener('chunks',e=>{
+    try{
+      const d=JSON.parse(e.data);
+      addChunkEntry(d);
+    }catch(err){}
+  });
+  es.onerror=()=>{
+    setStatus('SSE disconnected','error');
+    es.close();
+    setTimeout(connectSSE,3000);
+  };
+  setStatus('SSE connected','success');
+}
+
+// Status poll fallback
+setInterval(async()=>{
+  try{
+    const st=await api('/api/status');
+    if(!qs('#status').textContent.includes('Voices'))
+      setStatus(st.text,st.type||'');
+  }catch(_){}
+},5000);
+
+async function init(){
+  await loadConfig();
+  await loadVoices();
+  await loadDebug();
+  connectSSE();
+}
 init();
 </script>
 </body>

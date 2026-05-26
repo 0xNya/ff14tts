@@ -21,8 +21,11 @@ type wsVoice struct {
 }
 
 type messageHandler struct {
-	config *ConfigStore
-	voices *VoiceStore
+	config    *ConfigStore
+	voices    *VoiceStore
+	msgLog    *MessageLog
+	sseBroker *SSEBroker
+	debugCfg  *DebugConfig
 }
 
 func (h *messageHandler) handle(msg []byte) {
@@ -31,6 +34,11 @@ func (h *messageHandler) handle(msg []byte) {
 		log.Printf("[WS] JSON error: %v", err)
 		return
 	}
+
+	if h.debugCfg.Get().ShowRaw {
+		log.Printf("[RAW] %s", string(msg))
+	}
+
 	if data.Type != "Say" {
 		return
 	}
@@ -57,21 +65,56 @@ func (h *messageHandler) handle(msg []byte) {
 
 	log.Printf("[TTS] (%s) %s", voiceName, payload)
 
+	gender := "?"
+	switch category {
+	case "male":
+		gender = "\u2642"
+	case "female":
+		gender = "\u2640"
+	}
+	displayVoice := voiceName + " (" + gender + ")"
+
+	chatMsg := ChatMessage{
+		Timestamp: time.Now().Format("15:04:05"),
+		Voice:     displayVoice,
+		Category:  category,
+		Text:      payload,
+	}
+	msgID := h.msgLog.Add(chatMsg)
+	h.sseBroker.PublishEvent("message", chatMsg)
+
 	go func() {
-		for chunk := range synthesizeStream(payload, speakerID, vc.Speed, vc.Volume) {
-			if chunk.Err != nil {
-				log.Printf("[VOICEVOX] synthesis error: %v", chunk.Err)
+		start := time.Now()
+		var chunks []ChunkInfo
+		for c := range synthesizeStream(payload, speakerID, vc.Speed, vc.Volume) {
+			elapsed := time.Since(start).Milliseconds()
+			if c.Err != nil {
+				log.Printf("[VOICEVOX] synthesis error: %v", c.Err)
 				continue
 			}
-			if err := playWAV(chunk.WAV); err != nil {
+			chunks = append(chunks, ChunkInfo{Text: c.Text, TimeMs: elapsed})
+			if err := playWAV(c.WAV); err != nil {
 				log.Printf("[PLAY] error: %v", err)
+			}
+		}
+		totalMs := time.Since(start).Milliseconds()
+		h.msgLog.UpdateChunks(msgID, chunks, totalMs)
+		h.sseBroker.PublishEvent("chunks", map[string]interface{}{
+			"id":       msgID,
+			"chunks":   chunks,
+			"total_ms": totalMs,
+		})
+		if h.debugCfg.Get().ShowChunks {
+			log.Printf("[CHUNKS] #%d: %d chunks, %dms total", msgID, len(chunks), totalMs)
+			for i, c := range chunks {
+				log.Printf("[CHUNK %d/%d] +%dms: %s", i+1, len(chunks), c.TimeMs, c.Text)
 			}
 		}
 	}()
 }
 
-func startWebSocket(config *ConfigStore, voices *VoiceStore, stop <-chan struct{}) {
-	handler := &messageHandler{config: config, voices: voices}
+func startWebSocket(config *ConfigStore, voices *VoiceStore, msgLog *MessageLog, sseBroker *SSEBroker, debugCfg *DebugConfig, stop <-chan struct{}) {
+	handler := &messageHandler{config: config, voices: voices, msgLog: msgLog, sseBroker: sseBroker, debugCfg: debugCfg}
 
 	for {
 		select {

@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"sync/atomic"
@@ -21,10 +22,13 @@ type serverState struct {
 	voicesOk  atomic.Bool
 	config    *ConfigStore
 	voices    *VoiceStore
+	msgLog    *MessageLog
+	sseBroker *SSEBroker
+	debugCfg  *DebugConfig
 }
 
-func newServer(config *ConfigStore, voices *VoiceStore) *serverState {
-	return &serverState{config: config, voices: voices}
+func newServer(config *ConfigStore, voices *VoiceStore, msgLog *MessageLog, sseBroker *SSEBroker, debugCfg *DebugConfig) *serverState {
+	return &serverState{config: config, voices: voices, msgLog: msgLog, sseBroker: sseBroker, debugCfg: debugCfg}
 }
 
 func (s *serverState) Handler() http.Handler {
@@ -34,6 +38,9 @@ func (s *serverState) Handler() http.Handler {
 	mux.HandleFunc("POST /api/config", s.setConfig)
 	mux.HandleFunc("GET /api/voices", s.getVoices)
 	mux.HandleFunc("GET /api/status", s.getStatus)
+	mux.HandleFunc("GET /api/events", s.sseHandler)
+	mux.HandleFunc("GET /api/debug", s.getDebug)
+	mux.HandleFunc("POST /api/debug", s.setDebug)
 	return mux
 }
 
@@ -87,4 +94,43 @@ func (s *serverState) getStatus(w http.ResponseWriter, r *http.Request) {
 		info = statusInfo{Text: "Connected to TextToTalk", Type: "success"}
 	}
 	json.NewEncoder(w).Encode(info)
+}
+
+func (s *serverState) sseHandler(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "SSE not supported", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	ch := s.sseBroker.Subscribe()
+	defer s.sseBroker.Unsubscribe(ch)
+
+	for {
+		select {
+		case msg := <-ch:
+			fmt.Fprint(w, msg)
+			flusher.Flush()
+		case <-r.Context().Done():
+			return
+		}
+	}
+}
+
+func (s *serverState) getDebug(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(s.debugCfg.Get())
+}
+
+func (s *serverState) setDebug(w http.ResponseWriter, r *http.Request) {
+	var cfg DebugConfig
+	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	s.debugCfg.Set(&cfg)
+	w.WriteHeader(http.StatusOK)
 }

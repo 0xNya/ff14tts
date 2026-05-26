@@ -16,13 +16,16 @@ func main() {
 	config.Load()
 
 	voices := NewVoiceStore()
+	msgLog := NewMessageLog()
+	sseBroker := NewSSEBroker()
+	debugCfg := NewDebugConfig()
 
-	server := newServer(config, voices)
+	server := newServer(config, voices, msgLog, sseBroker, debugCfg)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go startWebSocket(config, voices, ctx.Done())
+	go startWebSocket(config, voices, msgLog, sseBroker, debugCfg, ctx.Done())
 
 	mux := server.Handler()
 
